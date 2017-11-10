@@ -1,0 +1,33 @@
+<html>
+	<head>
+		<title>OCR TEST</title>
+	</head>
+	<body>
+		<h1>OCR Golang Test</h1>
+		<p>Upload an image and hit submit to see what text is detected</p>
+		<input name='file' type='file' id='upload_file'>
+		<br/><br/>
+		<button type='button' onclick='upload_file()' >Submit</button>
+		<p id='detected_text'></p>
+
+		<script type='text/javascript'>
+			var send_file = function(e) {
+				var data = e.target.result;
+				var req = new XMLHttpRequest();
+				req.open('POST', 'http://localhost:8080/image', true);
+				req.onload = function() {
+					text_update = document.getElementById('detected_text');
+					text_update.innerHTML = req.responseText;
+				};
+				req.send(data);
+			};
+
+			var upload_file = function() {
+				var file = document.getElementById('upload_file').files[0];
+				var reader = new FileReader();
+				reader.onload = send_file;
+    			reader.readAsArrayBuffer(file);
+			};
+		</script>
+	</body>
+</html>
