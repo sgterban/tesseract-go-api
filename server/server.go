@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/otiai10/gosseract"
+	"gopkg.in/gographics/imagick.v2/imagick"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -60,7 +61,7 @@ func processHTTPImage(w http.ResponseWriter, req *http.Request) {
 	width := img.Bounds().Max.Y - img.Bounds().Min.Y
 	fmt.Println("Height: " + strconv.Itoa(height) + ", Width: " + strconv.Itoa(width))
 
-	img = optimizeImage(img)
+	img = optimizeImage(img, format)
 
 	//generate random file for temporary processing
 	imgPath := currentDirectory + "/" + RandomString(20) + "." + format
@@ -102,7 +103,36 @@ func processHTTPImage(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(response))
 }
 
-func optimizeImage(img image.Image) image.Image {
+func optimizeImage(img image.Image, format string) image.Image {
+	imagick.Initialize()
+	defer imagick.Terminate()
+
+	mw := imagick.NewMagickWand()
+	defer mw.Destroy()
+
+	buf := new(bytes.Buffer)
+	if format == "png" {
+		png.Encode(buf, img)
+	} else if format == "jpeg" {
+		jpeg.Encode(buf, img, &jpeg.Options{jpeg.DefaultQuality})
+	}
+
+	err := mw.ReadImageBlob(buf.Bytes())
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	mw.DespeckleImage()
+	mw.BrightnessContrastImage(10, 100)
+	mw.SetImageType(imagick.IMAGE_TYPE_GRAYSCALE)
+
+	reader := bytes.NewReader(mw.GetImageBlob())
+
+	img, _, err = image.Decode(reader)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
 	return img
 }
 
